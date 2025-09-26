@@ -3,13 +3,16 @@ import pandas as pd
 
 st.title("Google Sheet Filter App with Colour Column")
 
-# Step 1: Enter Google Sheet CSV link
+# Step 1: Enter Google Sheet CSV export link
 sheet_url = st.text_input("Enter Google Sheet CSV export link (make sure sharing is 'Anyone with the link can edit')")
 
 if sheet_url:
     try:
+        # Step 2: Ask how many rows to skip from top
+        skip_rows = st.number_input("Enter number of rows to skip from top", min_value=0, value=0, step=1)
+
         # Load Google Sheet directly as CSV
-        df = pd.read_csv(sheet_url)
+        df = pd.read_csv(sheet_url, skiprows=skip_rows)
 
         # Add Colour column if not exists
         if "Colour" not in df.columns:
@@ -17,11 +20,11 @@ if sheet_url:
 
         st.success("Google Sheet loaded successfully!")
 
-        # Step 2: Select column to filter
+        # Step 3: Select column to filter
         col_options = df.columns.tolist()
         filter_col = st.selectbox("Select column to filter", col_options)
 
-        # Step 3: Select filter values
+        # Step 4: Select filter values
         unique_values = df[filter_col].dropna().astype(str).unique().tolist()
         filter_values = st.multiselect(f"Select value(s) to filter {filter_col}", unique_values)
 
