@@ -1,17 +1,20 @@
 import streamlit as st
 import pandas as pd
 
-st.title("Google Sheet Filter App with Colour Column and TXT logging")
+st.title("Google Sheet Filter App with Colour Column and Value.txt Logging")
 
 # Step 1: Enter Google Sheet CSV export link
 sheet_url = st.text_input("Enter Google Sheet CSV export link (make sure sharing is 'Anyone with the link can view')")
 
-# Step 2: TXT file path (simulate GitHub file)
-txt_file_path = "marked_values.txt"
+# TXT file to store marked values
+txt_file_path = "Value.txt"
 
 if sheet_url:
     try:
+        # Step 2: Ask how many rows to skip from top
         skip_rows = st.number_input("Enter number of rows to skip from top", min_value=0, value=0, step=1)
+
+        # Load Google Sheet directly as CSV
         df = pd.read_csv(sheet_url, skiprows=skip_rows)
 
         # Step 3: Select column to filter
@@ -23,6 +26,7 @@ if sheet_url:
         filter_values = st.multiselect(f"Select value(s) to filter {filter_col}", unique_values)
 
         if filter_values:
+            # Filter DataFrame
             mask = df[filter_col].astype(str).apply(lambda x: any(val.lower() in x.lower() for val in filter_values))
             filtered_df = df[mask]
 
@@ -30,17 +34,17 @@ if sheet_url:
                 st.write(f"### Filtered Data (where `{filter_col}` contains {filter_values})")
 
                 for idx, row in filtered_df.iterrows():
-                    # Checkbox for each row
+                    # Checkbox for each filtered row
                     col_checkbox = st.checkbox(f"Mark '{row[filter_col]}'", key=f"row_{idx}")
                     if col_checkbox:
-                        # Append the value to txt file (simulate GitHub storage)
+                        # Append value to Value.txt
                         with open(txt_file_path, "a") as f:
                             f.write(str(row[filter_col]) + "\n")
 
                     st.dataframe(row.to_frame().T.transpose())
 
-                # Show current content of txt file
-                st.write("### Current Marked Values")
+                # Show current content of Value.txt
+                st.write("### Current Marked Values in Value.txt")
                 try:
                     with open(txt_file_path, "r") as f:
                         st.text(f.read())
