@@ -19,27 +19,22 @@ if uploaded_file is not None:
         col_options = df.columns.tolist()
         filter_col = st.selectbox("Select column to filter", col_options)
 
-        # Step 4: Enter value
-        filter_value = st.text_input(f"Enter value to filter {filter_col}")
+        # Step 4: Select multiple filter values
+        unique_values = df[filter_col].dropna().astype(str).unique().tolist()
+        filter_values = st.multiselect(f"Select value(s) to filter {filter_col}", unique_values)
 
-        if filter_value:
-            # Case-insensitive filter
-            filtered_df = df[df[filter_col].astype(str).str.contains(filter_value, case=False, na=False)]
+        if filter_values:
+            # Case-insensitive filter for multiple values
+            mask = df[filter_col].astype(str).apply(lambda x: any(val.lower() in x.lower() for val in filter_values))
+            filtered_df = df[mask]
 
             if not filtered_df.empty:
-                st.write(f"### Filtered Data (where `{filter_col}` contains '{filter_value}')")
+                st.write(f"### Filtered Data (where `{filter_col}` contains {filter_values})")
 
                 # Show transposed view (vertical)
                 for idx, row in filtered_df.iterrows():
                     st.write(f"#### Row {idx}")
                     st.dataframe(row.to_frame().T.transpose())  # transpose row
-
-                # Prepare transposed data for download
-                transposed_df = filtered_df.transpose()
-
-                # Download button
-                csv = transposed_df.to_csv(header=False).encode("utf-8")
-                st.download_button("Download Transposed Data", csv, "filtered_data.csv", "text/csv")
             else:
                 st.warning("No matching rows found.")
 
