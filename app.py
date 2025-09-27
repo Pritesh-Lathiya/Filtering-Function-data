@@ -1,58 +1,64 @@
 import streamlit as st
 import pandas as pd
+import requests
+import base64
+import json
 
-st.title("Google Sheet Filter App with Colour Column and Value.txt Logging")
+# GitHub settings
+GITHUB_REPO = "your-username/your-repo"  # e.g., priteshlathiya/myapp
+FILE_PATH = "Value.txt"
+BRANCH = "main"
+TOKEN = "your_personal_access_token"  # create from GitHub Developer Settings
 
-# Step 1: Enter Google Sheet CSV export link
+st.title("Google Sheet Filter App with GitHub Value.txt Logging")
+
+# Input Google Sheet link
 sheet_url = st.text_input("Enter Google Sheet CSV export link (make sure sharing is 'Anyone with the link can view')")
-
-# TXT file to store marked values
-txt_file_path = "Value.txt"
+skip_rows = st.number_input("Enter number of rows to skip from top", min_value=0, step=1)
 
 if sheet_url:
     try:
-        # Step 2: Ask how many rows to skip from top
-        skip_rows = st.number_input("Enter number of rows to skip from top", min_value=0, value=0, step=1)
-
-        # Load Google Sheet directly as CSV
         df = pd.read_csv(sheet_url, skiprows=skip_rows)
+        column = st.selectbox("Select column to filter", df.columns)
+        values = st.multiselect(f"Select value(s) to filter {column}", df[column].unique())
 
-        # Step 3: Select column to filter
-        col_options = df.columns.tolist()
-        filter_col = st.selectbox("Select column to filter", col_options)
+        if values:
+            filtered_df = df[df[column].astype(str).str.contains('|'.join(values), case=False, na=False)]
+            st.write("Filtered Data (where", column, "contains", values, ")", filtered_df)
 
-        # Step 4: Select filter values
-        unique_values = df[filter_col].dropna().astype(str).unique().tolist()
-        filter_values = st.multiselect(f"Select value(s) to filter {filter_col}", unique_values)
+            # Load current Value.txt from GitHub
+            url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}?ref={BRANCH}"
+            headers = {"Authorization": f"token {TOKEN}"}
+            response = requests.get(url, headers=headers).json()
 
-        if filter_values:
-            # Filter DataFrame
-            mask = df[filter_col].astype(str).apply(lambda x: any(val.lower() in x.lower() for val in filter_values))
-            filtered_df = df[mask]
-
-            if not filtered_df.empty:
-                st.write(f"### Filtered Data (where `{filter_col}` contains {filter_values})")
-
-                for idx, row in filtered_df.iterrows():
-                    # Checkbox for each filtered row
-                    col_checkbox = st.checkbox(f"Mark '{row[filter_col]}'", key=f"row_{idx}")
-                    if col_checkbox:
-                        # Append value to Value.txt
-                        with open(txt_file_path, "a") as f:
-                            f.write(str(row[filter_col]) + "\n")
-
-                    st.dataframe(row.to_frame().T.transpose())
-
-                # Show current content of Value.txt
-                st.write("### Current Marked Values in Value.txt")
-                try:
-                    with open(txt_file_path, "r") as f:
-                        st.text(f.read())
-                except FileNotFoundError:
-                    st.text("No values marked yet.")
-
+            sha = response.get("sha", None)
+            if "content" in response:
+                current_content = base64.b64decode(response["content"]).decode("utf-8").splitlines()
             else:
-                st.warning("No matching rows found.")
+                current_content = []
+
+            # Append new values if not already in file
+            updated_content = current_content + [v for v in values if v not in current_content]
+            new_file_content = "\n".join(updated_content)
+
+            # Push updated file to GitHub
+            data = {
+                "message": "Updated Value.txt from Streamlit app",
+                "content": base64.b64encode(new_file_content.encode("utf-8")).decode("utf-8"),
+                "branch": BRANCH
+            }
+            if sha:
+                data["sha"] = sha
+
+            put_response = requests.put(url, headers=headers, data=json.dumps(data))
+
+            if put_response.status_code in [200, 201]:
+                st.success("Value.txt updated successfully in GitHub!")
+            else:
+                st.error(f"Error updating file: {put_response.json()}")
+
+            st.write("Current Marked Values in Value.txt")
+            st.write(updated_content)
 
     except Exception as e:
-        st.error(f"Error loading Google Sheet: {e}")
+        st.error(f"Error: {e}")
