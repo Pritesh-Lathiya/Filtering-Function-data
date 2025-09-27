@@ -5,10 +5,10 @@ import base64
 import json
 
 # GitHub settings
-GITHUB_REPO = "your-username/your-repo"  # e.g., priteshlathiya/myapp
+GITHUB_REPO = "Pritesh-Lathiya/Filtering-Function-data"
 FILE_PATH = "Value.txt"
 BRANCH = "main"
-TOKEN = "your_personal_access_token"  # create from GitHub Developer Settings
+TOKEN = "your_personal_access_token"
 
 st.title("Google Sheet Filter App with GitHub Value.txt Logging")
 
@@ -62,3 +62,4 @@ if sheet_url:
 
     except Exception as e:
         st.error(f"Error: {e}")
+
