@@ -4,7 +4,7 @@ import requests
 import base64
 
 # --- Title in sidebar ---
-st.sidebar.title("Excel Filter App with Value.txt Logging")
+st.sidebar.title("Impossible")
 
 # --- GitHub secrets ---
 TOKEN = st.secrets["GITHUB_TOKEN"]
@@ -66,3 +66,4 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"Error: {e}")
+
