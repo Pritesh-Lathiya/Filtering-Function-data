@@ -2,65 +2,71 @@ import streamlit as st
 import pandas as pd
 import requests
 import base64
-import json
 
-# GitHub settings
-GITHUB_REPO = "Pritesh-Lathiya/Filtering-Function-data"
-FILE_PATH = "Value.txt"
-BRANCH = "main"
-TOKEN = "your_personal_access_token"
+st.title("Google Sheet Filter App with Value.txt Logging")
 
-st.title("Google Sheet Filter App with GitHub Value.txt Logging")
+# Load secrets
+TOKEN = st.secrets["GITHUB_TOKEN"]
+REPO = st.secrets["GITHUB_REPO"]
+FILE_PATH = st.secrets["GITHUB_FILE"]
 
-# Input Google Sheet link
+headers = {"Authorization": f"token {TOKEN}"}
+
+def get_file_content():
+    url = f"https://api.github.com/repos/{REPO}/contents/{FILE_PATH}"
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        data = r.json()
+        content = base64.b64decode(data["content"]).decode("utf-8")
+        sha = data["sha"]
+        return content.splitlines(), sha
+    else:
+        return [], None
+
+def update_file(new_lines, sha):
+    url = f"https://api.github.com/repos/{REPO}/contents/{FILE_PATH}"
+    content = "\n".join(new_lines)
+    encoded = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+    data = {
+        "message": "Update Value.txt from Streamlit",
+        "content": encoded,
+        "sha": sha
+    }
+    r = requests.put(url, headers=headers, json=data)
+    return r.status_code == 200
+
+# UI
 sheet_url = st.text_input("Enter Google Sheet CSV export link (make sure sharing is 'Anyone with the link can view')")
-skip_rows = st.number_input("Enter number of rows to skip from top", min_value=0, step=1)
+skip_rows = st.number_input("Enter number of rows to skip from top", min_value=0, value=0, step=1)
 
 if sheet_url:
     try:
         df = pd.read_csv(sheet_url, skiprows=skip_rows)
-        column = st.selectbox("Select column to filter", df.columns)
-        values = st.multiselect(f"Select value(s) to filter {column}", df[column].unique())
+        st.success("Google Sheet loaded successfully!")
+
+        col_options = df.columns.tolist()
+        filter_col = st.selectbox("Select column to filter", col_options)
+
+        values = st.multiselect(f"Select value(s) to filter {filter_col}", df[filter_col].dropna().unique())
 
         if values:
-            filtered_df = df[df[column].astype(str).str.contains('|'.join(values), case=False, na=False)]
-            st.write("Filtered Data (where", column, "contains", values, ")", filtered_df)
+            filtered_df = df[df[filter_col].astype(str).isin(values)]
+            st.write("### Filtered Data")
+            st.dataframe(filtered_df)
 
-            # Load current Value.txt from GitHub
-            url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}?ref={BRANCH}"
-            headers = {"Authorization": f"token {TOKEN}"}
-            response = requests.get(url, headers=headers).json()
+            # Load current txt values
+            existing, sha = get_file_content()
 
-            sha = response.get("sha", None)
-            if "content" in response:
-                current_content = base64.b64decode(response["content"]).decode("utf-8").splitlines()
-            else:
-                current_content = []
+            # Checkbox for marking
+            if st.checkbox("Mark selected values to Value.txt"):
+                updated = existing + values
+                if update_file(updated, sha):
+                    st.success("✅ Value.txt updated on GitHub!")
+                else:
+                    st.error("❌ Failed to update Value.txt")
 
-            # Append new values if not already in file
-            updated_content = current_content + [v for v in values if v not in current_content]
-            new_file_content = "\n".join(updated_content)
-
-            # Push updated file to GitHub
-            data = {
-                "message": "Updated Value.txt from Streamlit app",
-                "content": base64.b64encode(new_file_content.encode("utf-8")).decode("utf-8"),
-                "branch": BRANCH
-            }
-            if sha:
-                data["sha"] = sha
-
-            put_response = requests.put(url, headers=headers, data=json.dumps(data))
-
-            if put_response.status_code in [200, 201]:
-                st.success("Value.txt updated successfully in GitHub!")
-            else:
-                st.error(f"Error updating file: {put_response.json()}")
-
-            st.write("Current Marked Values in Value.txt")
-            st.write(updated_content)
+            st.write("### Current Marked Values in Value.txt")
+            st.write(existing)
 
     except Exception as e:
         st.error(f"Error: {e}")
-
-
