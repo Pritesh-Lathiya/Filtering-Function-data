@@ -3,15 +3,17 @@ import pandas as pd
 import requests
 import base64
 
-st.title("Google Sheet Filter App with Value.txt Logging")
+# --- Title in sidebar ---
+st.sidebar.title("Google Sheet Filter App with Value.txt Logging")
 
-# Load secrets
+# --- GitHub secrets ---
 TOKEN = st.secrets["GITHUB_TOKEN"]
 REPO = st.secrets["GITHUB_REPO"]
 FILE_PATH = st.secrets["GITHUB_FILE"]
 
 headers = {"Authorization": f"token {TOKEN}"}
 
+# --- GitHub helper functions ---
 def get_file_content():
     url = f"https://api.github.com/repos/{REPO}/contents/{FILE_PATH}"
     r = requests.get(url, headers=headers)
@@ -19,7 +21,7 @@ def get_file_content():
         data = r.json()
         content = base64.b64decode(data["content"]).decode("utf-8")
         sha = data["sha"]
-        return content.splitlines(), sha
+        return [line.strip() for line in content.splitlines() if line.strip()], sha
     else:
         return [], None
 
@@ -35,38 +37,32 @@ def update_file(new_lines, sha):
     r = requests.put(url, headers=headers, json=data)
     return r.status_code == 200
 
-# UI
-sheet_url = st.text_input("Enter Google Sheet CSV export link (make sure sharing is 'Anyone with the link can view')")
-skip_rows = st.number_input("Enter number of rows to skip from top", min_value=0, value=0, step=1)
+# --- Sidebar inputs ---
+sheet_url = st.sidebar.text_input("Enter Google Sheet CSV export link (make sure sharing is 'Anyone with the link can view')")
+skip_rows = st.sidebar.number_input("Enter number of rows to skip from top", min_value=0, value=0, step=1)
 
 if sheet_url:
     try:
         df = pd.read_csv(sheet_url, skiprows=skip_rows)
-        st.success("Google Sheet loaded successfully!")
+        st.sidebar.success("Google Sheet loaded successfully!")
 
         col_options = df.columns.tolist()
-        filter_col = st.selectbox("Select column to filter", col_options)
+        filter_col = st.sidebar.selectbox("Select column to filter", col_options)
 
-        values = st.multiselect(f"Select value(s) to filter {filter_col}", df[filter_col].dropna().unique())
+        # --- Main page: value selection ---
+        values = st.multiselect(f"Select value(s) to filter **{filter_col}**", df[filter_col].dropna().unique())
 
         if values:
             filtered_df = df[df[filter_col].astype(str).isin(values)]
             st.write("### Filtered Data")
             st.dataframe(filtered_df)
 
-            # Load current txt values
             existing, sha = get_file_content()
 
-            # Checkbox for marking
             if st.checkbox("Mark selected values to Value.txt"):
-                updated = existing + values
+                updated = existing + [v for v in values if v not in existing]
                 if update_file(updated, sha):
                     st.success("✅ Value.txt updated on GitHub!")
-                else:
-                    st.error("❌ Failed to update Value.txt")
-
-            st.write("### Current Marked Values in Value.txt")
-            st.write(existing)
 
     except Exception as e:
         st.error(f"Error: {e}")
