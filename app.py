@@ -4,7 +4,7 @@ import requests
 import base64
 
 # --- Title in sidebar ---
-st.sidebar.title("Google Sheet Filter App with Value.txt Logging")
+st.sidebar.title("Excel Filter App with Value.txt Logging")
 
 # --- GitHub secrets ---
 TOKEN = st.secrets["GITHUB_TOKEN"]
@@ -38,13 +38,13 @@ def update_file(new_lines, sha):
     return r.status_code == 200
 
 # --- Sidebar inputs ---
-sheet_url = st.sidebar.text_input("Enter Google Sheet CSV export link (make sure sharing is 'Anyone with the link can view')")
+uploaded_file = st.sidebar.file_uploader("Upload Excel file", type=["xlsx", "xls"])
 skip_rows = st.sidebar.number_input("Enter number of rows to skip from top", min_value=0, value=0, step=1)
 
-if sheet_url:
+if uploaded_file:
     try:
-        df = pd.read_csv(sheet_url, skiprows=skip_rows)
-        st.sidebar.success("Google Sheet loaded successfully!")
+        df = pd.read_excel(uploaded_file, skiprows=skip_rows)
+        st.sidebar.success("Excel file loaded successfully!")
 
         col_options = df.columns.tolist()
         filter_col = st.sidebar.selectbox("Select column to filter", col_options)
