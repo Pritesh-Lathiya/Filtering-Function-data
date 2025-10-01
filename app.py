@@ -4,7 +4,7 @@ import requests
 import base64
 
 # --- Title in sidebar ---
-st.sidebar.title("Impossible")
+st.sidebar.title("IMF")
 
 # --- GitHub secrets ---
 TOKEN = st.secrets["GITHUB_TOKEN"]
@@ -54,8 +54,8 @@ if uploaded_file:
 
         if values:
             filtered_df = df[df[filter_col].astype(str).isin(values)]
-            st.write("### Filtered Data")
-            st.dataframe(filtered_df)
+            st.write("### Filtered Data (Transposed)")
+            st.dataframe(filtered_df.T)   # 🔹 Show transposed
 
             existing, sha = get_file_content()
 
@@ -66,4 +66,3 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"Error: {e}")
-
