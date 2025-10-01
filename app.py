@@ -4,7 +4,7 @@ import requests
 import base64
 
 # --- Title in sidebar ---
-st.sidebar.title("IMF")
+st.sidebar.title("Excel Filter App with Value.txt Logging")
 
 # --- GitHub secrets ---
 TOKEN = st.secrets["GITHUB_TOKEN"]
@@ -49,13 +49,21 @@ if uploaded_file:
         col_options = df.columns.tolist()
         filter_col = st.sidebar.selectbox("Select column to filter", col_options)
 
+        # --- New filter: Exclude columns ---
+        exclude_cols = st.sidebar.multiselect("Select columns to exclude", col_options)
+
         # --- Main page: value selection ---
         values = st.multiselect(f"Select value(s) to filter **{filter_col}**", df[filter_col].dropna().unique())
 
         if values:
             filtered_df = df[df[filter_col].astype(str).isin(values)]
+
+            # Drop excluded columns
+            if exclude_cols:
+                filtered_df = filtered_df.drop(columns=exclude_cols)
+
             st.write("### Filtered Data (Transposed)")
-            st.dataframe(filtered_df.T)   # 🔹 Show transposed
+            st.table(filtered_df.T)   # 🔹 Static, no scrollbars
 
             existing, sha = get_file_content()
 
