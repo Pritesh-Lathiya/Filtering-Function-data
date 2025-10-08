@@ -4,7 +4,7 @@ import requests
 import base64
 
 # --- Title in sidebar ---
-st.sidebar.title("Excel Filter App with Value.txt Logging")
+st.sidebar.title("Filter")
 
 # --- GitHub secrets ---
 TOKEN = st.secrets["GITHUB_TOKEN"]
@@ -62,7 +62,7 @@ if uploaded_file:
             if exclude_cols:
                 filtered_df = filtered_df.drop(columns=exclude_cols)
 
-            st.write("### Filtered Data (Transposed)")
+            #st.write("### Filtered Data (Transposed)")
             st.table(filtered_df.T)   # 🔹 Static, no scrollbars
 
             existing, sha = get_file_content()
@@ -74,3 +74,4 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"Error: {e}")
+
