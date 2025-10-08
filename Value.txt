@@ -7,3 +7,4 @@ S.No.,Bill No,Date,Name & Address of Dealer,GSTIN,Purc. Type,Bill Amount,IGST Tx
 33,01-04-2024
 CE242500019,01-04-2024
 CE242500019,01-04-2024
+33,01-04-2024
