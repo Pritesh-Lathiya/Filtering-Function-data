@@ -62,16 +62,24 @@ if uploaded_file:
             if exclude_cols:
                 filtered_df = filtered_df.drop(columns=exclude_cols)
 
-            #st.write("### Filtered Data (Transposed)")
             st.table(filtered_df.T)   # 🔹 Static, no scrollbars
 
+            # --- GitHub update: write filtered rows as CSV ---
             existing, sha = get_file_content()
 
             if st.checkbox("Mark selected values to Value.txt"):
-                updated = existing + [v for v in values if v not in existing]
+                # Convert filtered rows to CSV lines
+                lines_to_write = filtered_df.astype(str).apply(lambda row: ",".join(row), axis=1).tolist()
+
+                # Add header if file empty
+                if not existing:
+                    header = ",".join(filtered_df.columns)
+                    updated = [header] + lines_to_write
+                else:
+                    updated = existing + lines_to_write
+
                 if update_file(updated, sha):
                     st.success("✅ Value.txt updated on GitHub!")
 
     except Exception as e:
         st.error(f"Error: {e}")
-
