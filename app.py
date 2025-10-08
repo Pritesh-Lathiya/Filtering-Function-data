@@ -47,10 +47,15 @@ if uploaded_file:
         st.sidebar.success("Excel file loaded successfully!")
 
         col_options = df.columns.tolist()
+
+        # --- Column to filter on ---
         filter_col = st.sidebar.selectbox("Select column to filter", col_options)
 
-        # --- New filter: Exclude columns ---
-        exclude_cols = st.sidebar.multiselect("Select columns to exclude", col_options)
+        # --- Columns to exclude from display ---
+        exclude_cols = st.sidebar.multiselect("Select columns to exclude from table", col_options)
+
+        # --- Columns to store in Value.txt ---
+        txt_cols = st.sidebar.multiselect("Select columns to save in Value.txt", col_options)
 
         # --- Main page: value selection ---
         values = st.multiselect(f"Select value(s) to filter **{filter_col}**", df[filter_col].dropna().unique())
@@ -58,22 +63,25 @@ if uploaded_file:
         if values:
             filtered_df = df[df[filter_col].astype(str).isin(values)]
 
-            # Drop excluded columns
-            if exclude_cols:
-                filtered_df = filtered_df.drop(columns=exclude_cols)
+            # Drop excluded columns for table display
+            display_df = filtered_df.drop(columns=exclude_cols) if exclude_cols else filtered_df
+            st.table(display_df.T)   # Static, no scrollbars
 
-            st.table(filtered_df.T)   # 🔹 Static, no scrollbars
-
-            # --- GitHub update: write filtered rows as CSV ---
+            # --- GitHub update ---
             existing, sha = get_file_content()
 
             if st.checkbox("Mark selected values to Value.txt"):
-                # Convert filtered rows to CSV lines
-                lines_to_write = filtered_df.astype(str).apply(lambda row: ",".join(row), axis=1).tolist()
+                if txt_cols:  # Only save selected columns
+                    df_to_save = filtered_df[txt_cols].astype(str)
+                else:  # If nothing selected, save entire row
+                    df_to_save = filtered_df.astype(str)
+
+                # Convert rows to CSV lines
+                lines_to_write = df_to_save.apply(lambda row: ",".join(row), axis=1).tolist()
 
                 # Add header if file empty
                 if not existing:
-                    header = ",".join(filtered_df.columns)
+                    header = ",".join(df_to_save.columns)
                     updated = [header] + lines_to_write
                 else:
                     updated = existing + lines_to_write
