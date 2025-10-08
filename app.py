@@ -63,6 +63,17 @@ if uploaded_file:
         if values:
             filtered_df = df[df[filter_col].astype(str).isin(values)]
 
+            # --- Check for duplicate bill numbers ---
+            if 'Bill No' in filtered_df.columns:
+                duplicate_bills = filtered_df['Bill No'].duplicated(keep=False)
+                if duplicate_bills.any():
+                    if st.checkbox("Filter duplicates by date"):
+                        # Show date selection dropdown
+                        if 'Date' in filtered_df.columns:
+                            unique_dates = filtered_df.loc[duplicate_bills, 'Date'].dropna().unique()
+                            selected_date = st.selectbox("Select date to filter duplicates", unique_dates)
+                            filtered_df = filtered_df[filtered_df['Date'] == selected_date]
+
             # Drop excluded columns for table display
             display_df = filtered_df.drop(columns=exclude_cols) if exclude_cols else filtered_df
             st.table(display_df.T)   # Static, no scrollbars
