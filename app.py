@@ -46,9 +46,6 @@ if uploaded_file:
         df = pd.read_excel(uploaded_file, skiprows=skip_rows)
         st.sidebar.success("Excel file loaded successfully!")
 
-        # --- Normalize column names (remove spaces for easy matching) ---
-        df.columns = df.columns.str.strip()
-
         col_options = df.columns.tolist()
 
         # --- Column to filter on ---
@@ -66,27 +63,20 @@ if uploaded_file:
         if values:
             filtered_df = df[df[filter_col].astype(str).isin(values)]
 
-            # --- Check for duplicate bill numbers (support both 'BillNo' and 'Bill No') ---
-            bill_col = None
-            date_col = None
-
-            for col in df.columns:
-                if col.lower().replace(" ", "") in ["billno", "billnumber"]:
-                    bill_col = col
-                if col.lower().replace(" ", "") in ["billdate", "date"]:
-                    date_col = col
-
-            if bill_col and date_col:
-                duplicate_bills = filtered_df[bill_col].duplicated(keep=False)
+            # --- Check for duplicate bill numbers ---
+            if 'Bill No' in filtered_df.columns:
+                duplicate_bills = filtered_df['Bill No'].duplicated(keep=False)
                 if duplicate_bills.any():
-                    if st.checkbox("Filter duplicate BillNos by BillDate"):
-                        unique_dates = filtered_df.loc[duplicate_bills, date_col].dropna().unique()
-                        selected_date = st.selectbox("Select BillDate to filter duplicates", unique_dates)
-                        filtered_df = filtered_df[filtered_df[date_col] == selected_date]
+                    if st.checkbox("Filter duplicates by date"):
+                        # Show date selection dropdown
+                        if 'Date' in filtered_df.columns:
+                            unique_dates = filtered_df.loc[duplicate_bills, 'Date'].dropna().unique()
+                            selected_date = st.selectbox("Select date to filter duplicates", unique_dates)
+                            filtered_df = filtered_df[filtered_df['Date'] == selected_date]
 
             # Drop excluded columns for table display
             display_df = filtered_df.drop(columns=exclude_cols) if exclude_cols else filtered_df
-            st.table(display_df.T)   # Static table
+            st.table(display_df.T)   # Static, no scrollbars
 
             # --- GitHub update ---
             existing, sha = get_file_content()
