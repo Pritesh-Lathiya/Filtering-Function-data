@@ -70,9 +70,9 @@ if uploaded_file:
                     if st.checkbox("Filter duplicates by date"):
                         # Show date selection dropdown
                         if 'Date' in filtered_df.columns:
-                            unique_dates = filtered_df.loc[duplicate_bills, 'Date'].dropna().unique()
+                            unique_dates = filtered_df.loc[duplicate_bills, 'BillDate'].dropna().unique()
                             selected_date = st.selectbox("Select date to filter duplicates", unique_dates)
-                            filtered_df = filtered_df[filtered_df['Date'] == selected_date]
+                            filtered_df = filtered_df[filtered_df['BillDate'] == selected_date]
 
             # Drop excluded columns for table display
             display_df = filtered_df.drop(columns=exclude_cols) if exclude_cols else filtered_df
@@ -102,3 +102,4 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"Error: {e}")
+
