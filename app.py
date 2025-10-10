@@ -64,8 +64,8 @@ if uploaded_file:
             filtered_df = df[df[filter_col].astype(str).isin(values)]
 
             # --- Check for duplicate bill numbers ---
-            if 'Bill No' in filtered_df.columns:
-                duplicate_bills = filtered_df['Bill No'].duplicated(keep=False)
+            if 'BillNo' in filtered_df.columns:
+                duplicate_bills = filtered_df['BillNo'].duplicated(keep=False)
                 if duplicate_bills.any():
                     if st.checkbox("Filter duplicates by date"):
                         # Show date selection dropdown
@@ -102,4 +102,5 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"Error: {e}")
+
 
